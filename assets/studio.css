@@ -1,0 +1,32 @@
+/* Remove every trace of the host framework: menu, header, toolbars, footer, badges, status, deploy button. */
+#MainMenu,header,[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],[data-testid="stMainMenu"],[data-testid="stAppDeployButton"],
+[data-testid="manage-app-button"],[data-testid="stElementToolbar"],[data-testid="stBaseButton-header"],
+[data-testid="stBaseButton-headerNoPadding"],[class*="viewerBadge"],[class*="StatusWidget"],
+footer,.stDeployButton{display:none!important;visibility:hidden!important}
+[data-testid="stAppViewContainer"]{padding-top:0!important}
+[data-testid="stMain"]{padding-top:0!important}
+a[href*="streamlit.io"]{display:none!important}
+
+/* select box (the model dropdown) */
+[data-baseweb="select"]>div{background:var(--glass)!important;border:1px solid var(--line)!important;border-radius:14px!important;min-height:48px;font-weight:600;color:var(--ink);box-shadow:0 8px 24px rgba(37,99,235,.08)}
+[data-baseweb="popover"] ul{background:#fff!important;border-radius:14px!important}
+[data-baseweb="popover"] li:hover{background:#E8F1FF!important}
+[data-testid="stSelectbox"] label,[data-testid="stTextInput"] label,[data-testid="stFileUploader"] label,
+[data-testid="stSegmentedControl"] label{font-weight:700;color:var(--mute);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
+[data-testid="stTextInput"] input{background:var(--glass)!important;border-radius:14px!important;border:1px solid var(--line)!important}
+
+/* tabs */
+[data-baseweb="tab-list"]{gap:.3rem;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:5px;width:fit-content}
+[data-baseweb="tab"]{border-radius:999px!important;padding:.35rem 1.1rem!important;font-weight:600!important;color:var(--mute)!important;background:transparent!important}
+[data-baseweb="tab"][aria-selected="true"]{background:linear-gradient(135deg,var(--blue),var(--blue2))!important;color:#fff!important;box-shadow:0 6px 16px rgba(37,99,235,.4)}
+[data-baseweb="tab-highlight"],[data-baseweb="tab-border"]{display:none!important}
+
+/* data tables, images, json */
+[data-testid="stDataFrame"]{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--glass);box-shadow:0 10px 30px rgba(37,99,235,.08)}
+[data-testid="stImage"] img{border-radius:16px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(37,99,235,.12)}
+[data-testid="stJson"]{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:.6rem;max-height:560px;overflow:auto}
+.mcard{margin-top:.6rem}
+table.grid{width:100%;border-collapse:collapse;font-size:.82rem;color:var(--ink);background:var(--glass);border-radius:12px;overflow:hidden}
+table.grid th,table.grid td{border:1px solid var(--line);padding:.35rem .6rem;text-align:left}
+table.grid th{background:#E8F1FF;color:var(--mute);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}
