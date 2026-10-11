@@ -12,6 +12,44 @@ key-value pairs, tables, text and the raw JSON. It looks like Sky-RAG, and nothi
 | Receipts | `prebuilt-receipt` |
 | General documents | `prebuilt-layout` with key-value pairs, since Azure retired `prebuilt-document` in API v4 |
 
+## How it works
+
+```mermaid
+flowchart LR
+    A[Pick a model] --> B[Choose a document]
+    B -->|sample, upload or link| C[Analyze]
+    C --> D{Already analyzed?}
+    D -->|yes| F[Use cached result]
+    D -->|no| E[Azure Document Intelligence]
+    E --> F
+    F --> G[Page with boxes]
+    F --> H[Tabs: fields, tables, text, JSON]
+```
+
+Clicking a row redraws the page without calling Azure again:
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant T as Results table
+    participant V as Page viewer
+    U->>T: Click a row
+    T->>V: Selected item and its page
+    V->>V: Jump to that page
+    V->>V: Draw the item solid, dim the rest
+```
+
+Each model decides which tabs show up:
+
+```mermaid
+flowchart TD
+    M[Model] --> R[OCR / Read] --> RT[Text, JSON]
+    M --> L[Layout] --> LT[Text, tables, JSON]
+    M --> I[Invoices] --> IT[Fields, tables, text, JSON]
+    M --> C[Receipts] --> CT[Fields, tables, text, JSON]
+    M --> G[General documents] --> GT[Key-value pairs, tables, text, JSON]
+```
+
 ## Run it
 
 ```
