@@ -1,6 +1,6 @@
 # Sky-DI
 
-A small Document Intelligence Studio. You pick a model, give it a document, and the app shows what Azure
+A mini Document Intelligence Studio. You pick a model, give it a document, and the app shows what Azure
 read: the page on the left with a box around every detected item, and tabs on the right for fields,
 key-value pairs, tables, text and the raw JSON. It looks like Sky-RAG, and nothing on screen says Streamlit.
 
