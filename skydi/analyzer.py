@@ -22,16 +22,21 @@ class Model:
 
 
 MODELS = [
-    Model("OCR / Read", "prebuilt-read", "Plain text, line by line, with confidence.", ("Content", "JSON")),
-    Model("Layout", "prebuilt-layout", "Text, tables, selection marks and structure.", ("Content", "Tables", "JSON")),
+    Model("OCR / Read", "prebuilt-read", "Plain text, line by line, with confidence.",
+          ("Content", "Lines", "JSON"),
+          ("barcodes",)),
+    Model("Layout", "prebuilt-layout", "Text, tables, selection marks and structure.",
+          ("Content", "Tables", "Lines", "JSON"),
+          ("barcodes",)),
     Model("Invoices", "prebuilt-invoice", "Vendor, customer, totals, dates and line items.",
-          ("Fields", "Tables", "Content", "JSON")),
+          ("Fields", "Tables", "Content", "Lines", "JSON"), ("barcodes",)),
     Model("Receipts", "prebuilt-receipt", "Merchant, date, totals, tax, tip and items.",
-          ("Fields", "Tables", "Content", "JSON")),
+          ("Fields", "Tables", "Content", "Lines", "JSON"), ("barcodes",)),
     Model("General documents", "prebuilt-layout", "Key-value pairs found in any document, plus tables.",
-          ("Key-value pairs", "Tables", "Content", "JSON"), ("keyValuePairs",)),
+          ("Key-value pairs", "Content", "Tables", "Lines", "JSON"), ("keyValuePairs", "barcodes")),
 ]
 BY_LABEL = {m.label: m for m in MODELS}
+FEATURES = {"keyValuePairs": DocumentAnalysisFeature.KEY_VALUE_PAIRS, "barcodes": DocumentAnalysisFeature.BARCODES}
 
 
 class AnalyzeError(Exception):
@@ -48,7 +53,7 @@ def analyze(data: bytes, model: Model) -> dict:
         raise AnalyzeError("Set AZURE_DOCINTEL_ENDPOINT and AZURE_DOCINTEL_KEY in .env first.")
     client = DocumentIntelligenceClient(os.environ["AZURE_DOCINTEL_ENDPOINT"],
                                         AzureKeyCredential(os.environ["AZURE_DOCINTEL_KEY"]))
-    features = [DocumentAnalysisFeature.KEY_VALUE_PAIRS] if model.features else None
+    features = [FEATURES[f] for f in model.features] or None
     for attempt in range(4):
         try:
             poller = client.begin_analyze_document(model.model_id, AnalyzeDocumentRequest(bytes_source=data),
@@ -137,8 +142,46 @@ def table_rows(result: dict) -> list[dict]:
         for c in table.get("cells") or []:
             page, poly = _region(c)
             rows.append({"page": page, "polygon": poly, "table": t + 1, "row": c.get("rowIndex", 0),
-                         "col": c.get("columnIndex", 0), "text": c.get("content", ""), "kind": c.get("kind", "content")})
+                         "col": c.get("columnIndex", 0), "text": c.get("content", ""), "kind": c.get("kind", "content"),
+                         "rowSpan": c.get("rowSpan", 1), "colSpan": c.get("columnSpan", 1)})
     return rows
+
+
+ROLES = {"title": "Title", "sectionHeading": "Section heading", "pageHeader": "Page header",
+         "pageFooter": "Page footer", "pageNumber": "Page number", "footnote": "Footnote", "formulaBlock": "Formula"}
+
+
+def paragraph_rows(result: dict) -> list[dict]:
+    """One row per paragraph. `Role` is what Azure decided it is: a title, heading, header, footer, footnote..."""
+    rows = []
+    for para in result.get("paragraphs") or []:
+        page, poly = _region(para)
+        rows.append({"page": page, "polygon": poly, "Role": ROLES.get(para.get("role"), "Paragraph"),
+                     "Text": para.get("content", "")})
+    return rows
+
+
+def _page_rows(result: dict, key: str, make) -> list[dict]:
+    """Rows for the per-page lists Azure returns (selection marks, barcodes); `make` adds the columns."""
+    return [{"page": p.get("pageNumber"), "polygon": it.get("polygon") or [], **make(it)}
+            for p in result.get("pages") or [] for it in p.get(key) or []]
+
+
+def mark_rows(result: dict) -> list[dict]:
+    """One row per selection mark (checkbox / radio button)."""
+    return _page_rows(result, "selectionMarks", lambda m: {
+        "State": "Selected" if m.get("state") == "selected" else "Unselected", "Confidence": m.get("confidence")})
+
+
+def barcode_rows(result: dict) -> list[dict]:
+    """One row per barcode or QR code; `Type` is Azure's symbology name (QRCode, Code128, ...)."""
+    return _page_rows(result, "barcodes", lambda b: {
+        "Type": b.get("kind", ""), "Value": b.get("value", ""), "Confidence": b.get("confidence")})
+
+
+# row kind -> builder; the kinds are what the page viewer and the tabs are keyed by
+ROWS = {"field": field_rows, "kv": kv_rows, "line": line_rows, "table": table_rows, "mark": mark_rows,
+        "barcode": barcode_rows, "para": paragraph_rows}
 
 
 def stats(result: dict) -> dict:
@@ -147,4 +190,6 @@ def stats(result: dict) -> dict:
         "Lines": sum(len(p.get("lines") or []) for p in result.get("pages") or []),
         "Tables": len(result.get("tables") or []),
         "Fields": len(field_rows(result)) or len(result.get("keyValuePairs") or []),
+        "Marks": len(mark_rows(result)),
+        "Barcodes": len(barcode_rows(result)),
     }
