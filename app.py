@@ -70,13 +70,20 @@ def to_df(rows: list[dict]) -> pd.DataFrame:
     return df
 
 
+def csv_safe(df: pd.DataFrame) -> str:
+    """CSV text for a download. Cells come from the document, so a leading = + - @ (or tab / CR) is escaped with a
+    quote to stop Excel and Sheets from running it as a formula."""
+    return df.map(lambda v: "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
+                  ).to_csv(index=False)
+
+
 def table(rows: list[dict], key: str, name: str):
     """Show rows as a selectable table with a CSV download, and return the selected row index, if any."""
     if not rows:
         st.markdown('<div class="hint">Nothing found for this model.</div>', unsafe_allow_html=True)
         return
     df = to_df(rows)
-    st.download_button("Download CSV", df.to_csv(index=False), f"{name}.csv", "text/csv", key=f"csv_{key}")
+    st.download_button("Download CSV", csv_safe(df), f"{name}.csv", "text/csv", key=f"csv_{key}")
     cfg = {"Confidence": st.column_config.ProgressColumn("Confidence", min_value=0, max_value=100, format="%.0f%%")}
     st.dataframe(df, key=key, hide_index=True, width="stretch", height=480, column_config=cfg,
                  on_select="rerun", selection_mode="single-row")
