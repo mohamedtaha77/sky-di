@@ -1,0 +1,10 @@
+.env
+.venv/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.streamlit/secrets.toml
+tests/
+Dockerfile
+.dockerignore

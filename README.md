@@ -1,8 +1,36 @@
+<div align="center">
+
 # Sky-DI
 
-A mini Document Intelligence Studio. You pick a model, give it a document, and the app shows what Azure
-read: the page on the left with a box around every detected item, and tabs on the right for fields,
-key-value pairs, tables, text and the raw JSON. It looks like Sky-RAG, and nothing on screen says Streamlit.
+**A mini Document Intelligence Studio, built on Azure AI Document Intelligence.**
+
+Pick a model, give it a document, and see exactly what Azure read.
+
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.40+-FF4B4B?logo=streamlit&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-Document%20Intelligence-0078D4?logo=microsoftazure&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+
+</div>
+
+---
+
+## Overview
+
+Sky-DI shows the page on the left with a box around every detected item, and tabs on the right for
+fields, key-value pairs, tables, text and the raw JSON. Click a row in any table and its box lights up on
+the page. It looks like Sky-RAG, and nothing on screen says Streamlit.
+
+### Features
+
+- **Five analysis modes** covering OCR, layout, invoices, receipts and general documents
+- **Interactive viewer**: click any result row to jump to its page and highlight its box
+- **Three ways in**: bundled samples, file upload (PDF, JPG, PNG, TIFF, BMP up to 20 MB), or a public link
+- **Cached results** per file and model, so clicking around never calls Azure twice
+- **Custom studio UI** with the Streamlit menu, header, toolbar and footer hidden
+- **Container-ready** with a slim, non-root Docker image
+
+### Models
 
 | Dropdown | Azure model |
 |---|---|
@@ -50,33 +78,73 @@ flowchart TD
     M --> G[General documents] --> GT[Key-value pairs, tables, text, JSON]
 ```
 
-## Run it
+## Getting started
 
+### Prerequisites
+
+- An [Azure AI Document Intelligence](https://learn.microsoft.com/azure/ai-services/document-intelligence/) resource (endpoint and key)
+- Either **Docker**, or **Python 3.13+**
+
+### Configuration
+
+Copy `.env.example` to `.env` and fill it in:
+
+| Variable | Description |
+|---|---|
+| `AZURE_DOCINTEL_ENDPOINT` | Your resource endpoint, e.g. `https://<your-resource>.cognitiveservices.azure.com/` |
+| `AZURE_DOCINTEL_KEY` | One of the resource's API keys |
+
+### Run with Docker
+
+```bash
+docker build -t sky-di .
+docker run --rm -p 8501:8501 --env-file .env sky-di
 ```
+
+Then open <http://localhost:8501>. The container listens on `$PORT` (default `8501`).
+
+### Run locally
+
+```bash
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # macOS / Linux
 pip install -r requirements.txt
-copy .env.example .env
 streamlit run app.py
 ```
 
-Put your Document Intelligence endpoint and key in `.env` first.
-
-You can use a bundled sample, upload a file (PDF, JPG, PNG, TIFF or BMP, up to 20 MB), or paste a public
-link. Click a row in any table to highlight its box on the page. Results are cached per file and model, so
-clicking around doesn't call Azure again.
-
 ## Deploy
 
-Like Sky-RAG, the `Procfile` works on Railway or any host that reads one. Set `AZURE_DOCINTEL_ENDPOINT` and
-`AZURE_DOCINTEL_KEY` as environment variables.
+The `Dockerfile` works on any container host: Render, Railway, Fly.io, Azure Container Apps and so on.
+Set `AZURE_DOCINTEL_ENDPOINT` and `AZURE_DOCINTEL_KEY` as environment variables. Hosts that inject their
+own `PORT` are picked up automatically.
+
+## Project structure
+
+```
+sky-di/
+├── app.py              # Streamlit entry point
+├── skydi/
+│   ├── analyzer.py     # Azure call and result-to-table-row helpers
+│   ├── render.py       # Page images and bounding-box overlays
+│   └── ui.py           # Small HTML builders for the studio look
+├── assets/             # CSS (studio, style, motion) and favicon
+├── samples/            # Bundled invoice, layout and receipt documents
+├── tests/              # Unit tests, no Azure needed
+├── .streamlit/         # Streamlit config
+└── Dockerfile
+```
 
 ## Tests
 
-`python -m pytest tests`. They don't need Azure.
+```bash
+python -m pytest tests
+```
+
+The tests don't need Azure.
 
 ## Notes
 
-- Styles are in `assets/`. `studio.css` hides the menu, header, toolbar, footer and deploy button.
+- Styles live in `assets/`. `studio.css` hides the menu, header, toolbar, footer and deploy button.
 - Streamlit serves a blank page with its own title for a split second before the CSS loads. CSS can't
   change that moment.
